@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LexAI — Legal Document Intelligence</title>
+  <meta name="description" content="Understand any legal document in plain English. LexAI uses multi-agent AI to explain, flag risks, and answer questions about your contracts." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─── Reset & Tokens ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:             #080b14;
+      --bg-surface:     #0d1120;
+      --bg-card:        #111827;
+      --bg-card-hover:  #141d2e;
+      --bg-input:       #0a0e1a;
+      --border:         rgba(255,255,255,0.07);
+      --border-focus:   rgba(99,102,241,0.5);
+      --accent:         #6366f1;
+      --accent-soft:    #818cf8;
+      --accent-glow:    rgba(99,102,241,0.18);
+      --accent-glow2:   rgba(99,102,241,0.08);
+      --cyan:           #22d3ee;
+      --text:           #e2e8f0;
+      --text-dim:       #94a3b8;
+      --text-muted:     #4b5563;
+      --success:        #10b981;
+      --high:           #ef4444;
+      --high-bg:        rgba(239,68,68,0.12);
+      --high-border:    rgba(239,68,68,0.3);
+      --medium:         #f97316;
+      --medium-bg:      rgba(249,115,22,0.12);
+      --medium-border:  rgba(249,115,22,0.3);
+      --low:            #eab308;
+      --low-bg:         rgba(234,179,8,0.12);
+      --low-border:     rgba(234,179,8,0.3);
+      --radius:         14px;
+      --radius-sm:      8px;
+      --shadow:         0 4px 24px rgba(0,0,0,0.4);
+      --shadow-glow:    0 0 40px rgba(99,102,241,0.12);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Background gradient orbs ──────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -200px; left: -200px;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -200px; right: -200px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(34,211,238,0.05) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── Layout ─────────────────────────────────────────────────────────── */
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* ─── Header ─────────────────────────────────────────────────────────── */
+    header {
+      padding: 40px 0 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--cyan) 100%);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 20px rgba(99,102,241,0.4);
+      flex-shrink: 0;
+    }
+    .logo-text h1 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 30%, var(--accent-soft) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .logo-text p {
+      font-size: 13px;
+      color: var(--text-dim);
+      font-weight: 400;
+    }
+    .header-badge {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: var(--accent-glow2);
+      border: 1px solid var(--border-focus);
+      color: var(--accent-soft);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* ─── Upload Zone ────────────────────────────────────────────────────── */
+    .upload-section { margin-bottom: 28px; }
+
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 44px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      background: var(--bg-card);
+      position: relative;
+      overflow: hidden;
+    }
+    .upload-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, var(--accent-glow2) 0%, transparent 65%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: var(--bg-card-hover);
+      box-shadow: var(--shadow-glow);
+    }
+    .upload-zone:hover::before,
+    .upload-zone.drag-over::before { opacity: 1; }
+
+    .upload-zone.has-file {
+      border-color: var(--success);
+      border-style: solid;
+    }
+    .upload-zone.has-file::before {
+      background: radial-gradient(ellipse at 50% 0%, rgba(16,185,129,0.06) 0%, transparent 65%);
+      opacity: 1;
+    }
+
+    #fileInput { display: none; }
+
+    .upload-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      display: block;
+      transition: transform 0.25s ease;
+    }
+    .upload-zone:hover .upload-icon { transform: translateY(-3px); }
+    .upload-zone.has-file .upload-icon { font-size: 32px; }
+
+    .upload-label {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .upload-sub {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .upload-sub span {
+      color: var(--accent-soft);
+      font-weight: 500;
+    }
+
+    .file-info {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      margin-top: 14px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .file-info.visible { display: flex; }
+    .file-info-name { flex: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-remove {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-dim); font-size: 18px; line-height: 1;
+      padding: 0 2px;
+      transition: color 0.2s;
+    }
+    .file-remove:hover { color: var(--high); }
+
+    .analyze-btn {
+      margin-top: 16px;
+      width: 100%;
+      padding: 14px 24px;
+      background: linear-gradient(135deg, var(--accent) 0%, #4f46e5 100%);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      letter-spacing: 0.2px;
+      box-shadow: 0 4px 16px rgba(99,102,241,0.35);
+    }
+    .analyze-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(99,102,241,0.45);
+    }
+    .analyze-btn:active:not(:disabled) { transform: translateY(0); }
+    .analyze-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ─── Error Banner ───────────────────────────────────────────────────── */
+    .error-banner {
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #fca5a5;
+      animation: slideDown 0.2s ease;
+    }
+    .error-banner.visible { display: flex; }
+    .error-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ─── Loading ─────────────────────────────────────────────────────────── */
+    .loading-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 60px 24px;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .loading-state.visible { display: flex; }
+
+    .spinner {
+      width: 48px; height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-right-color: var(--accent-soft);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .loading-title {
+      font-size: 16px; font-weight: 600; color: var(--text);
+    }
+    .loading-steps {
+      display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 320px;
+    }
+    .loading-step {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: var(--text-dim);
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      transition: all 0.3s;
+    }
+    .loading-step.active {
+      color: var(--accent-soft);
+      border-color: var(--border-focus);
+      background: var(--accent-glow2);
+    }
+    .loading-step.done { color: var(--success); }
+    .step-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--text-muted); flex-shrink: 0;
+    }
+    .loading-step.active .step-dot { background: var(--accent); animation: pulse 1s ease infinite; }
+    .loading-step.done .step-dot { background: var(--success); }
+
+    /* ─── Results Panel ──────────────────────────────────────────────────── */
+    .results-panel {
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      animation: fadeIn 0.35s ease;
+    }
+    .results-panel.visible { display: block; }
+
+    /* Doc meta bar */
+    .doc-meta {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .doc-meta-icon { font-size: 20px; }
+    .doc-meta-name { font-weight: 600; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .doc-meta-pages { color: var(--text-dim); }
+    .analyze-again-btn {
+      background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      color: var(--text-dim); font-size: 12px; font-family: inherit;
+      padding: 5px 12px; cursor: pointer; transition: all 0.2s;
+    }
+    .analyze-again-btn:hover { border-color: var(--accent); color: var(--accent-soft); }
+
+    /* ─── Tabs ───────────────────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      background: var(--bg-surface);
+      position: relative;
+    }
+    .tab-btn {
+      padding: 14px 20px;
+      font-size: 13px; font-weight: 500; font-family: inherit;
+      color: var(--text-dim);
+      background: none; border: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+      position: relative;
+      bottom: -1px;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--accent-soft);
+      border-bottom-color: var(--accent);
+    }
+    .tab-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      font-size: 10px; font-weight: 700;
+      background: var(--accent-glow);
+      color: var(--accent-soft);
+      margin-left: 6px;
+    }
+
+    /* ─── Tab Panels ─────────────────────────────────────────────────────── */
+    .tab-panel {
+      display: none;
+      padding: 24px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .tab-panel.active { display: block; }
+
+    /* Scrollbar */
+    .tab-panel::-webkit-scrollbar { width: 5px; }
+    .tab-panel::-webkit-scrollbar-track { background: transparent; }
+    .tab-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ─── Summary Panel ──────────────────────────────────────────────────── */
+    .summary-intro {
+      font-size: 13px; color: var(--text-dim);
+      margin-bottom: 20px;
+      padding: 10px 14px;
+      background: var(--accent-glow2);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+
+    .section-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px 18px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+    .section-card:hover { border-color: rgba(99,102,241,0.25); }
+
+    .section-heading {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; color: var(--accent-soft);
+      margin-bottom: 8px;
+    }
+    .section-body {
+      font-size: 14px; color: var(--text); line-height: 1.7;
+    }
+    .section-body strong { color: var(--text); }
+
+    /* Plain text fallback */
+    .plain-text {
+      font-size: 14px; color: var(--text); line-height: 1.8;
+      white-space: pre-wrap;
+    }
+    .plain-text h2, .plain-text h3 {
+      font-size: 14px; font-weight: 700; color: var(--accent-soft);
+      margin: 18px 0 6px; text-transform: uppercase; letter-spacing: 0.6px;
+    }
+    .plain-text strong { color: var(--text); }
+
+    /* ─── Risk Panel ─────────────────────────────────────────────────────── */
+    .risk-intro {
+      font-size: 13px; color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+    .no-risks {
+      text-align: center; padding: 40px 20px;
+      color: var(--success); font-size: 15px; font-weight: 500;
+    }
+    .no-risks span { display: block; font-size: 36px; margin-bottom: 10px; }
+
+    .risk-card {
+      border-radius: var(--radius-sm);
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      border: 1px solid;
+      position: relative;
+      overflow: hidden;
+      animation: fadeIn 0.3s ease;
+    }
+    .risk-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+    }
+    .risk-card.HIGH  { background: var(--high-bg);   border-color: var(--high-border);   }
+    .risk-card.HIGH::before  { background: var(--high);   }
+    .risk-card.MEDIUM { background: var(--medium-bg); border-color: var(--medium-border); }
+    .risk-card.MEDIUM::before { background: var(--medium); }
+    .risk-card.LOW   { background: var(--low-bg);    border-color: var(--low-border);    }
+    .risk-card.LOW::before   { background: var(--low);    }
+
+    .risk-card-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 10px;
+    }
+    .severity-badge {
+      font-size: 10px; font-weight: 800; letter-spacing: 1px;
+      padding: 3px 9px; border-radius: 20px;
+      text-transform: uppercase; flex-shrink: 0;
+    }
+    .severity-badge.HIGH   { background: rgba(239,68,68,0.2);  color: #fca5a5; border: 1px solid var(--high-border); }
+    .severity-badge.MEDIUM { background: rgba(249,115,22,0.2); color: #fdba74; border: 1px solid var(--medium-border); }
+    .severity-badge.LOW    { background: rgba(234,179,8,0.2);  color: #fde047; border: 1px solid var(--low-border); }
+
+    .risk-number {
+      font-size: 12px; font-weight: 700; color: var(--text-muted);
+      width: 22px; height: 22px;
+      background: var(--bg-card);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .risk-title {
+      font-size: 14px; font-weight: 600; color: var(--text); flex: 1;
+    }
+    .risk-body {
+      font-size: 13px; color: var(--text-dim); line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .risk-body strong { color: var(--text); }
+
+    /* ─── Q&A Panel ──────────────────────────────────────────────────────── */
+    .qa-panel-inner {
+      display: flex; flex-direction: column; gap: 0;
+      height: 100%;
+    }
+    .chat-history {
+      flex: 1;
+      display: flex; flex-direction: column; gap: 14px;
+      min-height: 0;
+      margin-bottom: 20px;
+    }
+    .chat-empty {
+      text-align: center; padding: 32px 20px;
+      color: var(--text-muted); font-size: 14px;
+    }
+    .chat-empty span { display: block; font-size: 32px; margin-bottom: 10px; }
+
+    .chat-msg {
+      display: flex; gap: 10px;
+      animation: fadeIn 0.25s ease;
+    }
+    .chat-msg.user { flex-direction: row-reverse; }
+
+    .msg-avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .chat-msg.user .msg-avatar  { background: var(--accent-glow); border: 1px solid var(--border-focus); }
+    .chat-msg.agent .msg-avatar { background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.25); }
+
+    .msg-bubble {
+      max-width: 85%;
+      padding: 12px 15px;
+      border-radius: var(--radius-sm);
+      font-size: 13.5px; line-height: 1.7;
+    }
+    .chat-msg.user  .msg-bubble {
+      background: var(--accent-glow);
+      border: 1px solid var(--border-focus);
+      color: var(--text);
+      border-radius: var(--radius-sm) 2px var(--radius-sm) var(--radius-sm);
+    }
+    .chat-msg.agent .msg-bubble {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 2px var(--radius-sm) var(--radius-sm) var(--radius-sm);
+    }
+    .msg-bubble em { color: var(--text-dim); font-style: normal; font-size: 12px; display: block; margin-top: 8px; }
+
+    .typing-indicator { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+    .typing-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--text-dim);
+      animation: bounce 1.2s ease infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    .chat-input-row {
+      display: flex; gap: 10px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    #questionInput {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 14px;
+      color: var(--text);
+      font-size: 14px; font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #questionInput:focus { border-color: var(--border-focus); }
+    #questionInput::placeholder { color: var(--text-muted); }
+    #questionInput:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #sendBtn {
+      background: linear-gradient(135deg, var(--accent) 0%, #4f46e5 100%);
+      border: none; border-radius: var(--radius-sm);
+      padding: 11px 20px;
+      color: #fff; font-size: 14px; font-weight: 600; font-family: inherit;
+      cursor: pointer; transition: all 0.2s;
+      white-space: nowrap;
+    }
+    #sendBtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(99,102,241,0.4); }
+    #sendBtn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    /* ─── Disclaimer ─────────────────────────────────────────────────────── */
+    .disclaimer {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 28px;
+      padding: 0 12px;
+      line-height: 1.6;
+    }
+    .disclaimer a { color: var(--accent-soft); text-decoration: none; }
+
+    /* ─── Animations ─────────────────────────────────────────────────────── */
+    @keyframes spin   { to { transform: rotate(360deg); } }
+    @keyframes pulse  { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    @keyframes bounce {
+      0%,80%,100% { transform: scale(0.8); opacity: 0.5; }
+      40%         { transform: scale(1);   opacity: 1;   }
+    }
+
+    /* ─── Responsive ─────────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      header { padding: 24px 0 20px; }
+      .tab-btn { padding: 12px 12px; font-size: 12px; }
+      .tab-panel { padding: 16px; }
+      .analyze-btn { font-size: 14px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- ── Header ──────────────────────────────────────────────────────────── -->
+    <header>
+      <div class="logo-icon">⚖️</div>
+      <div class="logo-text">
+        <h1>LexAI</h1>
+        <p>Multi-agent legal document intelligence</p>
+      </div>
+      <span class="header-badge">Powered by Gemini</span>
+    </header>
+
+    <!-- ── Upload Section ──────────────────────────────────────────────────── -->
+    <section class="upload-section" id="uploadSection">
+      <div class="upload-zone" id="uploadZone" role="button" tabindex="0"
+           aria-label="Upload PDF document">
+        <input type="file" id="fileInput" accept=".pdf" aria-label="Choose PDF file" />
+        <span class="upload-icon" id="uploadIcon">📄</span>
+        <p class="upload-label" id="uploadLabel">Drop your legal document here</p>
+        <p class="upload-sub">or <span>click to browse</span> &nbsp;•&nbsp; PDF only &nbsp;•&nbsp; Max 10 MB</p>
+        <div class="file-info" id="fileInfo">
+          <span>📎</span>
+          <span class="file-info-name" id="fileInfoName"></span>
+          <button class="file-remove" id="fileRemove" aria-label="Remove file">✕</button>
+        </div>
+      </div>
+      <button class="analyze-btn" id="analyzeBtn" disabled>
+        Analyze Document →
+      </button>
+    </section>
+
+    <!-- ── Error Banner ─────────────────────────────────────────────────────── -->
+    <div class="error-banner" id="errorBanner" role="alert">
+      <span class="error-icon">⚠️</span>
+      <span id="errorText"></span>
+    </div>
+
+    <!-- ── Loading State ────────────────────────────────────────────────────── -->
+    <div class="loading-state" id="loadingState" aria-live="polite">
+      <div class="spinner"></div>
+      <p class="loading-title">Analyzing your document…</p>
+      <div class="loading-steps">
+        <div class="loading-step active" id="step1">
+          <div class="step-dot"></div> Extracting text &amp; clauses
+        </div>
+        <div class="loading-step" id="step2">
+          <div class="step-dot"></div> Generating plain-English summary
+        </div>
+        <div class="loading-step" id="step3">
+          <div class="step-dot"></div> Scanning for risk flags
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Results Panel ────────────────────────────────────────────────────── -->
+    <section class="results-panel" id="resultsPanel" aria-label="Analysis results">
+
+      <!-- Doc meta bar -->
+      <div class="doc-meta" id="docMeta">
+        <span class="doc-meta-icon">📋</span>
+        <span class="doc-meta-name" id="docMetaName">document.pdf</span>
+        <span class="doc-meta-pages" id="docMetaPages">— pages</span>
+        <button class="analyze-again-btn" id="analyzeAgainBtn">↑ New document</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs" role="tablist">
+        <button class="tab-btn active" id="tab-summary" role="tab"
+                aria-controls="panel-summary" aria-selected="true"
+                data-panel="summary">
+          📝 Plain English Summary
+        </button>
+        <button class="tab-btn" id="tab-risks" role="tab"
+                aria-controls="panel-risks" aria-selected="false"
+                data-panel="risks">
+          ⚠️ Risk Flags
+          <span class="tab-count" id="riskCount" style="display:none"></span>
+        </button>
+        <button class="tab-btn" id="tab-qa" role="tab"
+                aria-controls="panel-qa" aria-selected="false"
+                data-panel="qa">
+          💬 Ask a Question
+        </button>
+      </div>
+
+      <!-- Summary panel -->
+      <div class="tab-panel active" id="panel-summary" role="tabpanel"
+           aria-labelledby="tab-summary">
+        <p class="summary-intro">
+          Each section below has been translated from legal language into plain English by AI.
+        </p>
+        <div id="summaryContent"></div>
+      </div>
+
+      <!-- Risk Flags panel -->
+      <div class="tab-panel" id="panel-risks" role="tabpanel"
+           aria-labelledby="tab-risks">
+        <p class="risk-intro" id="riskIntro"></p>
+        <div id="risksContent"></div>
+      </div>
+
+      <!-- Q&A panel -->
+      <div class="tab-panel" id="panel-qa" role="tabpanel"
+           aria-labelledby="tab-qa">
+        <div class="qa-panel-inner">
+          <div class="chat-history" id="chatHistory">
+            <div class="chat-empty" id="chatEmpty">
+              <span>💬</span>
+              Ask anything about the document.<br />
+              <em style="font-size:12px; color: var(--text-muted);">
+                e.g. "What happens if I leave early?" or "Who owns my work?"
+              </em>
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="questionInput"
+                   placeholder="Type your question about the document…"
+                   aria-label="Question about document" />
+            <button id="sendBtn" aria-label="Send question">Send ↗</button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── Disclaimer ──────────────────────────────────────────────────────── -->
+    <p class="disclaimer">
+      LexAI provides <strong>legal clarity</strong>, not legal advice.
+      Always consult a qualified lawyer for important decisions.
+    </p>
+
+  </div><!-- /.app -->
+
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // State
+    // ─────────────────────────────────────────────────────────────────────────
+    let selectedFile   = null;
+    let documentText   = '';
+    let isAnalyzing    = false;
+    let isAsking       = false;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DOM refs
+    // ─────────────────────────────────────────────────────────────────────────
+    const uploadZone    = document.getElementById('uploadZone');
+    const fileInput     = document.getElementById('fileInput');
+    const uploadIcon    = document.getElementById('uploadIcon');
+    const uploadLabel   = document.getElementById('uploadLabel');
+    const fileInfo      = document.getElementById('fileInfo');
+    const fileInfoName  = document.getElementById('fileInfoName');
+    const fileRemove    = document.getElementById('fileRemove');
+    const analyzeBtn    = document.getElementById('analyzeBtn');
+    const analyzeAgainBtn = document.getElementById('analyzeAgainBtn');
+    const errorBanner   = document.getElementById('errorBanner');
+    const errorText     = document.getElementById('errorText');
+    const loadingState  = document.getElementById('loadingState');
+    const resultsPanel  = document.getElementById('resultsPanel');
+    const docMetaName   = document.getElementById('docMetaName');
+    const docMetaPages  = document.getElementById('docMetaPages');
+    const summaryContent = document.getElementById('summaryContent');
+    const risksContent  = document.getElementById('risksContent');
+    const riskCount     = document.getElementById('riskCount');
+    const riskIntro     = document.getElementById('riskIntro');
+    const chatHistory   = document.getElementById('chatHistory');
+    const chatEmpty     = document.getElementById('chatEmpty');
+    const questionInput = document.getElementById('questionInput');
+    const sendBtn       = document.getElementById('sendBtn');
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Upload UI
+    // ─────────────────────────────────────────────────────────────────────────
+    uploadZone.addEventListener('click', (e) => {
+      if (e.target === fileRemove) return;
+      fileInput.click();
+    });
+    uploadZone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') fileInput.click();
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) handleFileSelect(fileInput.files[0]);
+    });
+
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('drag-over');
+    });
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.classList.remove('drag-over');
+    });
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('drag-over');
+      const f = e.dataTransfer.files[0];
+      if (f) handleFileSelect(f);
+    });
+
+    fileRemove.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearFile();
+    });
+
+    function handleFileSelect(file) {
+      hideError();
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        showError('Only PDF files are supported. Please upload a .pdf file.');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        showError('File is too large. Maximum size is 10 MB.');
+        return;
+      }
+      selectedFile = file;
+      fileInfoName.textContent = file.name + ' (' + formatBytes(file.size) + ')';
+      fileInfo.classList.add('visible');
+      uploadIcon.textContent = '✅';
+      uploadLabel.textContent = 'File selected and ready';
+      uploadZone.classList.add('has-file');
+      analyzeBtn.disabled = false;
+    }
+
+    function clearFile() {
+      selectedFile = null;
+      fileInput.value = '';
+      fileInfo.classList.remove('visible');
+      uploadIcon.textContent = '📄';
+      uploadLabel.textContent = 'Drop your legal document here';
+      uploadZone.classList.remove('has-file');
+      analyzeBtn.disabled = true;
+      hideError();
+    }
+
+    analyzeAgainBtn.addEventListener('click', () => {
+      resultsPanel.classList.remove('visible');
+      documentText = '';
+      clearFile();
+      // Reset chat
+      chatHistory.innerHTML = '';
+      chatHistory.appendChild(chatEmpty);
+      chatEmpty.style.display = 'flex';
+    });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Analyze
+    // ─────────────────────────────────────────────────────────────────────────
+    analyzeBtn.addEventListener('click', doAnalyze);
+
+    async function doAnalyze() {
+      if (!selectedFile || isAnalyzing) return;
+      isAnalyzing = true;
+      hideError();
+      analyzeBtn.disabled = true;
+      resultsPanel.classList.remove('visible');
+      showLoading();
+
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        // Animate loading steps
+        animateLoadingSteps();
+
+        const res = await fetch('/analyze', { method: 'POST', body: formData });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: 'Unknown error.' }));
+          throw new Error(err.detail || `Server error ${res.status}`);
+        }
+
+        const data = await res.json();
+        documentText = data.document_text || '';
+
+        // Populate results
+        populateSummary(data.summary || '');
+        populateRisks(data.risks || '');
+        docMetaName.textContent = data.filename || selectedFile.name;
+        docMetaPages.textContent = (data.page_count || '?') + ' pages';
+
+        hideLoading();
+        resultsPanel.classList.add('visible');
+        switchTab('summary');
+
+      } catch (err) {
+        hideLoading();
+        showError('Analysis failed: ' + err.message);
+        analyzeBtn.disabled = false;
+      } finally {
+        isAnalyzing = false;
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Loading steps animator
+    // ─────────────────────────────────────────────────────────────────────────
+    function animateLoadingSteps() {
+      const steps = ['step1', 'step2', 'step3'];
+      let i = 0;
+      const advance = () => {
+        if (i > 0) {
+          document.getElementById(steps[i - 1]).classList.remove('active');
+          document.getElementById(steps[i - 1]).classList.add('done');
+        }
+        if (i < steps.length) {
+          document.getElementById(steps[i]).classList.add('active');
+          i++;
+          setTimeout(advance, 1800);
+        }
+      };
+      // Reset
+      steps.forEach(s => {
+        document.getElementById(s).classList.remove('active', 'done');
+      });
+      advance();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Populate Summary
+    // ─────────────────────────────────────────────────────────────────────────
+    function populateSummary(text) {
+      summaryContent.innerHTML = '';
+      if (!text.trim()) {
+        summaryContent.innerHTML = '<p class="risk-intro">No summary was generated.</p>';
+        return;
+      }
+
+      // Try to parse "[Section Name] → [explanation]" format
+      const sectionRegex = /\[([^\]]+)\]\s*[→\-:]\s*(.+?)(?=\n\[|$)/gs;
+      const sections = [...text.matchAll(sectionRegex)];
+
+      if (sections.length > 0) {
+        sections.forEach(([_, heading, body]) => {
+          const card = document.createElement('div');
+          card.className = 'section-card';
+          card.innerHTML = `
+            <div class="section-heading">${escHtml(heading.trim())}</div>
+            <div class="section-body">${formatInline(body.trim())}</div>
+          `;
+          summaryContent.appendChild(card);
+        });
+      } else {
+        // Fallback: render as formatted plain text, splitting by headings
+        const div = document.createElement('div');
+        div.className = 'plain-text';
+        div.innerHTML = renderMarkdown(text);
+        summaryContent.appendChild(div);
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Populate Risks
+    // ─────────────────────────────────────────────────────────────────────────
+    function populateRisks(text) {
+      risksContent.innerHTML = '';
+
+      if (!text.trim()) {
+        risksContent.innerHTML = '<div class="no-risks"><span>✅</span>No significant risks were identified.</div>';
+        riskCount.style.display = 'none';
+        return;
+      }
+
+      // Check for "no risks" phrasing
+      const noRiskPhrases = ['no risks', 'no significant risk', 'no risky', 'could not find any risk', 'no risk was found'];
+      if (noRiskPhrases.some(p => text.toLowerCase().includes(p))) {
+        risksContent.innerHTML = '<div class="no-risks"><span>✅</span>' + escHtml(text.trim()) + '</div>';
+        riskCount.style.display = 'none';
+        return;
+      }
+
+      // Split into numbered items
+      const items = splitRiskItems(text);
+
+      if (items.length === 0) {
+        // No numbered items — show as plain
+        const div = document.createElement('div');
+        div.className = 'plain-text';
+        div.innerHTML = renderMarkdown(text);
+        risksContent.appendChild(div);
+        return;
+      }
+
+      // Show badge count
+      riskCount.textContent = items.length;
+      riskCount.style.display = 'inline-flex';
+      riskIntro.textContent = `Found ${items.length} clause${items.length !== 1 ? 's' : ''} to review:`;
+
+      items.forEach((item, idx) => {
+        const sev = detectSeverity(item);
+        const title = extractRiskTitle(item);
+        const bodyHtml = stripRiskTitleAndSeverity(item, title, sev);
+
+        const card = document.createElement('div');
+        card.className = `risk-card ${sev}`;
+        card.innerHTML = `
+          <div class="risk-card-header">
+            <div class="risk-number">${idx + 1}</div>
+            <span class="severity-badge ${sev}">${sev}</span>
+            <span class="risk-title">${title}</span>
+          </div>
+          <div class="risk-body">${bodyHtml}</div>
+        `;
+        risksContent.appendChild(card);
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Risk helpers
+    // ─────────────────────────────────────────────────────────────────────────
+    function splitRiskItems(text) {
+      // Find the first index of a number starting a list item, e.g. "1. " or "<li>1. "
+      // Make sure we handle potential newlines or boundaries before it
+      const match = text.match(/(?:^|\n|<li[^>]*>)\s*(\d+)[\.\)]\s+/i);
+      if (!match) return [];
+      
+      const listContent = text.slice(match.index);
+      // Split on lines starting with a number and period/paren or HTML list elements
+      const parts = listContent.split(/(?:\n|<li[^>]*>)(?=\d+[\.\)]\s+)/i);
+      return parts
+        .map(s => {
+          let cleaned = s.replace(/^\s*\d+[\.\)]\s+/, '').trim();
+          cleaned = cleaned.replace(/^<\/li>/i, '').trim();
+          return cleaned;
+        })
+        .filter(s => s.length > 10);
+    }
+
+    function detectSeverity(text) {
+      const upper = text.toUpperCase();
+      if (upper.includes('HIGH'))   return 'HIGH';
+      if (upper.includes('MEDIUM')) return 'MEDIUM';
+      if (upper.includes('LOW'))    return 'LOW';
+      return 'MEDIUM';
+    }
+
+    function extractRiskTitle(text) {
+      let cleanText = text.replace(/^(?:[\s>]*\d+[\.\)]\s*(?:(?:<strong>)?\s*(?:HIGH|MEDIUM|LOW)\b\s*(?:<\/strong>)?\s*[:\-]?\s*)?)/i, '').trim();
+      cleanText = cleanText.replace(/^<li>/i, '').trim();
+
+      const boldMarkdown = cleanText.match(/\*\*([^*]+?)\*\*/);
+      if (boldMarkdown) return escHtml(boldMarkdown[1].trim());
+
+      const boldHtml = cleanText.match(/<(?:strong|b)>([\s\S]*?)<\/(?:strong|b)>/i);
+      if (boldHtml) return escHtml(boldHtml[1].trim());
+
+      const firstLine = cleanText.split(/<br\s*\/?>|\n/i).find(l => l.trim())?.replace(/^[-*•\s:#>\-]+/, '').trim() || '';
+      return escHtml(firstLine.length > 80 ? firstLine.slice(0, 80) + '…' : firstLine);
+    }
+
+    function stripRiskTitleAndSeverity(text, title, severity) {
+      let body = text.replace(/^(?:[\s>]*\d+[\.\)]\s*(?:(?:<strong>)?\s*(?:HIGH|MEDIUM|LOW)\b\s*(?:<\/strong>)?\s*[:\-]?\s*)?)/i, '').trim();
+      body = body.replace(/^<li>/i, '').trim();
+
+      const escapedTitle = title.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const titleRegex = new RegExp(`^(?:\\*\\*\\s*${escapedTitle}\\s*\\*\\*|<(?:strong|b)>\\s*${escapedTitle}\\s*<\\/(?:strong|b)>)\\s*[:\\-]?\\s*`, 'i');
+      body = body.replace(titleRegex, '').trim();
+
+      const hasHtml = /<(?:p|ul|li|div|br|span|strong|em)\b[^>]*>/i.test(body);
+      if (hasHtml) {
+        return body;
+      } else {
+        return renderMarkdown(body);
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Q&A
+    // ─────────────────────────────────────────────────────────────────────────
+    sendBtn.addEventListener('click', doAsk);
+    questionInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doAsk(); }
+    });
+
+    async function doAsk() {
+      const q = questionInput.value.trim();
+      if (!q || isAsking) return;
+      if (!documentText) {
+        showError('Please analyze a document first before asking questions.');
+        return;
+      }
+
+      isAsking = true;
+      questionInput.disabled = true;
+      sendBtn.disabled = true;
+      hideError();
+
+      // Hide empty state, add user bubble
+      chatEmpty.style.display = 'none';
+      appendMsg('user', q);
+      questionInput.value = '';
+
+      // Typing indicator
+      const typingEl = appendTyping();
+
+      try {
+        const res = await fetch('/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: q, document_text: documentText }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: 'Unknown error.' }));
+          throw new Error(err.detail || `Server error ${res.status}`);
+        }
+
+        const data = await res.json();
+        typingEl.remove();
+        appendMsg('agent', data.answer || 'No answer returned.');
+
+      } catch (err) {
+        typingEl.remove();
+        appendMsg('agent', '⚠️ Sorry, I encountered an error: ' + err.message);
+      } finally {
+        isAsking = false;
+        questionInput.disabled = false;
+        sendBtn.disabled = false;
+        questionInput.focus();
+      }
+    }
+
+    function appendMsg(role, text) {
+      const wrap = document.createElement('div');
+      wrap.className = `chat-msg ${role}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = 'msg-avatar';
+      avatar.textContent = role === 'user' ? '🧑' : '⚖️';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'msg-bubble';
+      bubble.innerHTML = role === 'agent' ? renderMarkdown(text) : escHtml(text);
+
+      wrap.appendChild(avatar);
+      wrap.appendChild(bubble);
+      chatHistory.appendChild(wrap);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+      return wrap;
+    }
+
+    function appendTyping() {
+      const wrap = document.createElement('div');
+      wrap.className = 'chat-msg agent';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'msg-avatar';
+      avatar.textContent = '⚖️';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'msg-bubble';
+      bubble.innerHTML = `<div class="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>`;
+
+      wrap.appendChild(avatar);
+      wrap.appendChild(bubble);
+      chatHistory.appendChild(wrap);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+      return wrap;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Tab switching
+    // ─────────────────────────────────────────────────────────────────────────
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.panel));
+    });
+
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        const isActive = b.dataset.panel === name;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-selected', isActive);
+      });
+      document.querySelectorAll('.tab-panel').forEach(p => {
+        p.classList.toggle('active', p.id === 'panel-' + name);
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // UI helpers
+    // ─────────────────────────────────────────────────────────────────────────
+    function showLoading() {
+      loadingState.classList.add('visible');
+    }
+    function hideLoading() {
+      loadingState.classList.remove('visible');
+    }
+    function showError(msg) {
+      errorText.textContent = msg;
+      errorBanner.classList.add('visible');
+    }
+    function hideError() {
+      errorBanner.classList.remove('visible');
+    }
+    function formatBytes(b) {
+      if (b < 1024) return b + ' B';
+      if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+      return (b / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Markdown helpers (lightweight, no external lib)
+    // ─────────────────────────────────────────────────────────────────────────
+    function escHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function formatInline(text) {
+      return escHtml(text)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g,     '<em>$1</em>')
+        .replace(/`(.+?)`/g,       '<code>$1</code>');
+    }
+
+    function renderMarkdown(text) {
+      const lines = escHtml(text).split('\n');
+      const out = [];
+      let inList = false;
+
+      for (let raw of lines) {
+        let line = raw
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g,     '<em>$1</em>')
+          .replace(/`(.+?)`/g,       '<code style="background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;font-size:12px">$1</code>');
+
+        if (/^###\s/.test(raw)) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push('<h4 style="font-size:13px;font-weight:700;color:var(--accent-soft);margin:16px 0 6px;text-transform:uppercase;letter-spacing:0.6px">' + line.replace(/^###\s/, '') + '</h4>');
+        } else if (/^##\s/.test(raw)) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push('<h3 style="font-size:14px;font-weight:700;color:var(--accent-soft);margin:18px 0 8px">' + line.replace(/^##\s/, '') + '</h3>');
+        } else if (/^#\s/.test(raw)) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push('<h2 style="font-size:15px;font-weight:800;color:var(--text);margin:20px 0 10px">' + line.replace(/^#\s/, '') + '</h2>');
+        } else if (/^[-*•]\s/.test(raw)) {
+          if (!inList) { out.push('<ul style="padding-left:18px;margin:8px 0">'); inList = true; }
+          out.push('<li style="margin:4px 0">' + line.replace(/^[-*•]\s/, '') + '</li>');
+        } else if (raw.trim() === '') {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push('<br/>');
+        } else {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push('<p style="margin:4px 0">' + line + '</p>');
+        }
+      }
+      if (inList) out.push('</ul>');
+      return out.join('\n');
+    }
+  </script>
+</body>
+</html>

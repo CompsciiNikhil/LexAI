@@ -1,0 +1,35 @@
+# LexAI .gitignore
+
+# Environment — never commit real API keys
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Temp uploads (session-scoped, should never be committed)
+/tmp/
+
+# Docker
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
