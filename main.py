@@ -16,6 +16,7 @@ Security:
 import asyncio
 import logging
 import os
+import re
 import tempfile
 import uuid
 from pathlib import Path
@@ -248,12 +249,157 @@ async def analyze(file: UploadFile = File(...)):
     logger.info("[/analyze] summary_preview=%r", summary[:300])
     logger.info("[/analyze] risks_500=%r", risks[:500])
 
+    # Calculate risk score metrics
+    high_count = 0
+    medium_count = 0
+    low_count = 0
+    score = 0
+    label = "Low Risk"
+
+    if risks.strip():
+        # Match the first list item index
+        first_match = re.search(r'(?:^|\n|<li[^>]*>)\s*(\d+)[\.\)]\s+', risks, re.IGNORECASE)
+        if first_match:
+            list_content = risks[first_match.start():]
+            parts = re.split(r'(?:\n|<li[^>]*>)(?=\d+[\.\)]\s+)', list_content, flags=re.IGNORECASE)
+            for part in parts:
+                part_clean = re.sub(r'^\s*\d+[\.\)]\s+', '', part).strip()
+                if len(part_clean) < 10:
+                    continue
+                upper_part = part_clean.upper()
+                if "HIGH" in upper_part:
+                    high_count += 1
+                elif "LOW" in upper_part:
+                    low_count += 1
+                else:
+                    medium_count += 1
+        else:
+            # Fallback if no numbered items but some text is present
+            no_risk_phrases = ['no risks', 'no significant risk', 'no risky', 'could not find any risk', 'no risk was found']
+            if not any(phrase in risks.lower() for phrase in no_risk_phrases):
+                # Count as a single medium risk if it doesn't look like "no risks"
+                medium_count = 1
+
+        score = (high_count * 15) + (medium_count * 8) + (low_count * 3)
+        score = min(score, 100)
+
+        if score <= 30:
+            label = "Low Risk"
+        elif score <= 60:
+            label = "Moderate Risk"
+        elif score <= 80:
+            label = "High Risk"
+        else:
+            label = "Critical Risk"
+
+    logger.info(
+        "[/analyze] calculated risk score: %d (%s), H:%d M:%d L:%d",
+        score, label, high_count, medium_count, low_count
+    )
+
     return JSONResponse({
         "summary": summary,
         "risks": risks,
         "document_text": doc_text,
         "filename": parsed["filename"],
         "page_count": parsed["page_count"],
+        "score": score,
+        "label": label,
+        "high_count": high_count,
+        "medium_count": medium_count,
+        "low_count": low_count
+    })
+
+
+@app.post("/analyze-demo")
+async def analyze_demo():
+    """
+    Analyze the local fake_contract.pdf file directly to demonstrate the tool's capability.
+    """
+    demo_path = Path(__file__).parent / "fake_contract.pdf"
+    if not demo_path.exists():
+        raise HTTPException(status_code=404, detail="Demo file not found.")
+        
+    parsed = parse_document(str(demo_path))
+    clauses = extract_clauses(parsed["text"])
+    
+    doc_text = parsed["text"]
+    clauses_formatted = "\n\n".join(
+        f"[{c['heading']}]\n{c['content']}" for c in clauses
+    )
+
+    base_context = (
+        f"Document: {parsed['filename']} ({parsed['page_count']} pages)\n\n"
+        f"Full Document Text:\n{doc_text}\n\n"
+        f"Extracted Clauses:\n{clauses_formatted}"
+    )
+
+    summary_prompt = (
+        base_context
+        + "\n\nPlease provide a plain-English, section-by-section summary of this legal document."
+    )
+    risk_prompt = (
+        base_context
+        + "\n\nPlease identify and flag all risky clauses in this legal document with severity ratings."
+    )
+
+    # Run both agents concurrently
+    summary, risks = await asyncio.gather(
+        _run_agent(explainer_runner, summary_prompt),
+        _run_agent(risk_runner, risk_prompt),
+    )
+
+    # Calculate risk score metrics
+    high_count = 0
+    medium_count = 0
+    low_count = 0
+    score = 0
+    label = "Low Risk"
+
+    if risks.strip():
+        first_match = re.search(r'(?:^|\n|<li[^>]*>)\s*(\d+)[\.\)]\s+', risks, re.IGNORECASE)
+        if first_match:
+            list_content = risks[first_match.start():]
+            parts = re.split(r'(?:\n|<li[^>]*>)(?=\d+[\.\)]\s+)', list_content, flags=re.IGNORECASE)
+            for part in parts:
+                part_clean = re.sub(r'^\s*\d+[\.\)]\s+', '', part).strip()
+                if len(part_clean) < 10:
+                    continue
+                upper_part = part_clean.upper()
+                if "HIGH" in upper_part:
+                    high_count += 1
+                elif "LOW" in upper_part:
+                    low_count += 1
+                else:
+                    medium_count += 1
+        else:
+            no_risk_phrases = ['no risks', 'no significant risk', 'no risky', 'could not find any risk', 'no risk was found']
+            if not any(phrase in risks.lower() for phrase in no_risk_phrases):
+                medium_count = 1
+
+        score = (high_count * 15) + (medium_count * 8) + (low_count * 3)
+        score = min(score, 100)
+
+        if score <= 30:
+            label = "Low Risk"
+        elif score <= 60:
+            label = "Moderate Risk"
+        elif score <= 80:
+            label = "High Risk"
+        else:
+            label = "Critical Risk"
+
+    return JSONResponse({
+        "summary": summary,
+        "risks": risks,
+        "document_text": doc_text,
+        "filename": parsed["filename"],
+        "page_count": parsed["page_count"],
+        "score": score,
+        "label": label,
+        "high_count": high_count,
+        "medium_count": medium_count,
+        "low_count": low_count
     })
 
 

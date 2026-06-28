@@ -323,6 +323,157 @@
     }
     .results-panel.visible { display: block; }
 
+    /* Risk Score Card */
+    .risk-score-card {
+      display: none;
+      align-items: center;
+      gap: 24px;
+      margin: 20px;
+      padding: 20px 24px;
+      background: var(--bg-surface);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      transition: all 0.3s ease;
+    }
+    
+    .score-radial-container {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      min-width: 100px;
+    }
+    
+    .score-value {
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -1px;
+      transition: color 0.3s ease;
+    }
+    
+    .score-max {
+      font-size: 14px;
+      color: var(--text-dim);
+      font-weight: 500;
+      margin-left: 2px;
+    }
+    
+    .score-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .score-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    
+    .score-label {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+    
+    .score-breakdown {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .score-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid transparent;
+    }
+    
+    .score-badge.badge-high {
+      background: rgba(239,68,68,0.12);
+      border-color: var(--high-border);
+      color: #fca5a5;
+    }
+    
+    .score-badge.badge-medium {
+      background: rgba(249,115,22,0.12);
+      border-color: var(--medium-border);
+      color: #fdba74;
+    }
+    
+    .score-badge.badge-low {
+      background: rgba(234,179,8,0.12);
+      border-color: var(--low-border);
+      color: #fde047;
+    }
+
+    /* Severity colors dynamic classes for the card */
+    .risk-score-card.low {
+      border-color: rgba(16,185,129,0.3);
+      background: radial-gradient(ellipse at 0% 0%, rgba(16,185,129,0.05) 0%, transparent 75%), var(--bg-surface);
+    }
+    .risk-score-card.low .score-value {
+      color: var(--success);
+    }
+    .risk-score-card.low .score-label {
+      color: var(--success);
+    }
+    
+    .risk-score-card.moderate {
+      border-color: rgba(249,115,22,0.3);
+      background: radial-gradient(ellipse at 0% 0%, rgba(249,115,22,0.05) 0%, transparent 75%), var(--bg-surface);
+    }
+    .risk-score-card.moderate .score-value {
+      color: var(--medium);
+    }
+    .risk-score-card.moderate .score-label {
+      color: var(--medium);
+    }
+    
+    .risk-score-card.high {
+      border-color: rgba(239,68,68,0.3);
+      background: radial-gradient(ellipse at 0% 0%, rgba(239,68,68,0.05) 0%, transparent 75%), var(--bg-surface);
+    }
+    .risk-score-card.high .score-value {
+      color: var(--high);
+    }
+    .risk-score-card.high .score-label {
+      color: var(--high);
+    }
+    
+    .risk-score-card.critical {
+      border-color: #991b1b;
+      background: radial-gradient(ellipse at 0% 0%, rgba(153,27,27,0.08) 0%, transparent 75%), var(--bg-surface);
+      animation: critical-pulse 2s infinite ease-in-out;
+    }
+    .risk-score-card.critical .score-value {
+      color: #ef4444;
+    }
+    .risk-score-card.critical .score-label {
+      color: #ef4444;
+    }
+    
+    @keyframes critical-pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(153,27,27,0.2);
+        border-color: #991b1b;
+      }
+      50% {
+        box-shadow: 0 0 15px 2px rgba(153,27,27,0.4);
+        border-color: #ef4444;
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(153,27,27,0.2);
+        border-color: #991b1b;
+      }
+    }
+
     /* Doc meta bar */
     .doc-meta {
       display: flex; align-items: center; gap: 12px;
@@ -638,7 +789,7 @@
         <input type="file" id="fileInput" accept=".pdf" aria-label="Choose PDF file" />
         <span class="upload-icon" id="uploadIcon">📄</span>
         <p class="upload-label" id="uploadLabel">Drop your legal document here</p>
-        <p class="upload-sub">or <span>click to browse</span> &nbsp;•&nbsp; PDF only &nbsp;•&nbsp; Max 10 MB</p>
+        <p class="upload-sub">or <span>click to browse</span> &nbsp;•&nbsp; PDF only &nbsp;•&nbsp; Max 10 MB<br/><span id="tryDemoLink" style="color:var(--accent-soft);text-decoration:underline;cursor:pointer;margin-top:8px;display:inline-block;font-weight:600">⚡ Try a demo contract</span></p>
         <div class="file-info" id="fileInfo">
           <span>📎</span>
           <span class="file-info-name" id="fileInfoName"></span>
@@ -682,6 +833,23 @@
         <span class="doc-meta-name" id="docMetaName">document.pdf</span>
         <span class="doc-meta-pages" id="docMetaPages">— pages</span>
         <button class="analyze-again-btn" id="analyzeAgainBtn">↑ New document</button>
+      </div>
+
+      <!-- Risk Score Card -->
+      <div id="riskScoreCard" class="risk-score-card">
+        <div class="score-radial-container">
+          <span class="score-value" id="scoreValue">0</span>
+          <span class="score-max">/100</span>
+        </div>
+        <div class="score-details">
+          <div class="score-title">Overall Contract Risk Score</div>
+          <div class="score-label" id="scoreLabel">Low Risk</div>
+          <div class="score-breakdown">
+            <span class="score-badge badge-high" id="badgeHigh">0 High</span>
+            <span class="score-badge badge-medium" id="badgeMedium">0 Medium</span>
+            <span class="score-badge badge-low" id="badgeLow">0 Low</span>
+          </div>
+        </div>
       </div>
 
       <!-- Tabs -->
@@ -865,10 +1033,19 @@
     // ─────────────────────────────────────────────────────────────────────────
     // Analyze
     // ─────────────────────────────────────────────────────────────────────────
-    analyzeBtn.addEventListener('click', doAnalyze);
+    analyzeBtn.addEventListener('click', () => doAnalyze(false));
 
-    async function doAnalyze() {
-      if (!selectedFile || isAnalyzing) return;
+    const tryDemoLink = document.getElementById('tryDemoLink');
+    if (tryDemoLink) {
+      tryDemoLink.addEventListener('click', (e) => {
+        e.stopPropagation();
+        doAnalyze(true);
+      });
+    }
+
+    async function doAnalyze(isDemo = false) {
+      if (!isDemo && !selectedFile) return;
+      if (isAnalyzing) return;
       isAnalyzing = true;
       hideError();
       analyzeBtn.disabled = true;
@@ -876,13 +1053,17 @@
       showLoading();
 
       try {
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-
         // Animate loading steps
         animateLoadingSteps();
 
-        const res = await fetch('/analyze', { method: 'POST', body: formData });
+        let res;
+        if (isDemo) {
+          res = await fetch('/analyze-demo', { method: 'POST' });
+        } else {
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+          res = await fetch('/analyze', { method: 'POST', body: formData });
+        }
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({ detail: 'Unknown error.' }));
@@ -895,7 +1076,8 @@
         // Populate results
         populateSummary(data.summary || '');
         populateRisks(data.risks || '');
-        docMetaName.textContent = data.filename || selectedFile.name;
+        populateRiskScore(data);
+        docMetaName.textContent = data.filename || (isDemo ? 'fake_contract.pdf' : selectedFile.name);
         docMetaPages.textContent = (data.page_count || '?') + ' pages';
 
         hideLoading();
@@ -933,6 +1115,44 @@
         document.getElementById(s).classList.remove('active', 'done');
       });
       advance();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Populate Risk Score
+    // ─────────────────────────────────────────────────────────────────────────
+    function populateRiskScore(data) {
+      const card = document.getElementById('riskScoreCard');
+      const scoreValue = document.getElementById('scoreValue');
+      const scoreLabel = document.getElementById('scoreLabel');
+      const badgeHigh = document.getElementById('badgeHigh');
+      const badgeMedium = document.getElementById('badgeMedium');
+      const badgeLow = document.getElementById('badgeLow');
+      
+      const score = data.score !== undefined ? data.score : 0;
+      const label = data.label || 'Low Risk';
+      const high = data.high_count || 0;
+      const medium = data.medium_count || 0;
+      const low = data.low_count || 0;
+      
+      scoreValue.textContent = score;
+      scoreLabel.textContent = label;
+      badgeHigh.textContent = `${high} High`;
+      badgeMedium.textContent = `${medium} Medium`;
+      badgeLow.textContent = `${low} Low`;
+      
+      // Reset card classes and apply severity color class
+      card.className = 'risk-score-card';
+      if (label === 'Low Risk') {
+        card.classList.add('low');
+      } else if (label === 'Moderate Risk') {
+        card.classList.add('moderate');
+      } else if (label === 'High Risk') {
+        card.classList.add('high');
+      } else if (label === 'Critical Risk') {
+        card.classList.add('critical');
+      }
+      
+      card.style.display = 'flex';
     }
 
     // ─────────────────────────────────────────────────────────────────────────
