@@ -37,6 +37,7 @@ from google.genai import types as genai_types
 from agents.explainer_agent import explainer_agent
 from agents.risk_agent import risk_agent
 from agents.qa_agent import qa_agent
+from agents.negotiation_agent import negotiation_agent
 from mcp_server.tools.parse_document import parse_document
 from mcp_server.tools.extract_clauses import extract_clauses
 
@@ -81,6 +82,7 @@ def _make_runner(agent) -> Runner:
 explainer_runner = _make_runner(explainer_agent)
 risk_runner = _make_runner(risk_agent)
 qa_runner = _make_runner(qa_agent)
+negotiation_runner = _make_runner(negotiation_agent)
 
 
 # ---------------------------------------------------------------------------
@@ -401,6 +403,34 @@ async def analyze_demo():
         "medium_count": medium_count,
         "low_count": low_count
     })
+
+
+class NegotiateRequest(BaseModel):
+    risks_text: str
+
+
+@app.post("/negotiate")
+async def negotiate(body: NegotiateRequest):
+    """
+    Accept the raw risks text from the risk agent, pass it to the Negotiation
+    Suggester Agent, and return { suggestions: string }.
+    Run separately from /analyze to avoid free-tier rate limit conflicts.
+    """
+    if not body.risks_text.strip():
+        raise HTTPException(status_code=400, detail="risks_text cannot be empty.")
+
+    logger.info("[/negotiate] risks_text_len=%d", len(body.risks_text))
+
+    prompt = (
+        "Here is the risk analysis output from a legal document. "
+        "Please provide negotiation suggestions for each HIGH and MEDIUM risk clause:\n\n"
+        + body.risks_text
+    )
+
+    suggestions = await _run_agent(negotiation_runner, prompt)
+    logger.info("[/negotiate] suggestions_len=%d suggestions_preview=%r", len(suggestions), suggestions[:300])
+
+    return JSONResponse({"suggestions": suggestions})
 
 
 class AskRequest(BaseModel):
