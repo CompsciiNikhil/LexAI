@@ -876,6 +876,40 @@
     .get-negotiate-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
     .get-negotiate-btn.visible { display: flex; }
 
+    /* ─── Download Report Button ──────────────────────────────────────────── */
+    .download-report-btn {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      margin-left: auto;
+      padding: 8px 16px;
+      background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(99,102,241,0.07) 100%);
+      border: 1px solid rgba(99,102,241,0.4);
+      border-radius: var(--radius-sm);
+      color: var(--accent-soft);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .download-report-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(99,102,241,0.28) 0%, rgba(99,102,241,0.14) 100%);
+      border-color: rgba(99,102,241,0.65);
+      color: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(99,102,241,0.28);
+    }
+    .download-report-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .download-report-btn.visible { display: flex; }
+    .download-report-btn .dl-icon { font-size: 14px; line-height: 1; }
+
     /* ─── Disclaimer ─────────────────────────────────────────────────────── */
     .disclaimer {
       text-align: center;
@@ -977,7 +1011,7 @@
       <div id="riskScoreCard" class="risk-score-card">
         <div class="score-radial-container">
           <span class="score-value" id="scoreValue">0</span>
-          <span class="score-max">/100</span>
+          <span class="score-max">%</span>
         </div>
         <div class="score-details">
           <div class="score-title">Overall Contract Risk Score</div>
@@ -987,6 +1021,7 @@
             <span class="score-badge badge-medium" id="badgeMedium">0 Medium</span>
             <span class="score-badge badge-low" id="badgeLow">0 Low</span>
           </div>
+          <div id="scoreClauses" style="font-size:11px;color:var(--text-dim);margin-top:5px;font-weight:500;">Based on 0 clauses reviewed</div>
         </div>
       </div>
 
@@ -1012,6 +1047,11 @@
                 aria-controls="panel-negotiate" aria-selected="false"
                 data-panel="negotiate">
           🤝 Negotiate
+        </button>
+        <!-- Download Report button sits flush inside the tab bar, pushed right -->
+        <button class="download-report-btn" id="downloadReportBtn"
+                aria-label="Download PDF report">
+          <span class="dl-icon">⬇</span> Download Report
         </button>
       </div>
 
@@ -1088,6 +1128,10 @@
     let isAnalyzing    = false;
     let isAsking       = false;
     let isNegotiating  = false;
+    let isDownloading  = false;
+
+    // Current analysis data for PDF report
+    let reportData = null;
 
     // ─────────────────────────────────────────────────────────────────────────
     // DOM refs
@@ -1117,6 +1161,7 @@
     const chatEmpty     = document.getElementById('chatEmpty');
     const questionInput = document.getElementById('questionInput');
     const sendBtn       = document.getElementById('sendBtn');
+    const downloadReportBtn = document.getElementById('downloadReportBtn');
 
     // ─────────────────────────────────────────────────────────────────────────
     // Upload UI
@@ -1186,6 +1231,8 @@
       resultsPanel.classList.remove('visible');
       documentText = '';
       currentRisksText = '';
+      reportData = null;
+      downloadReportBtn.classList.remove('visible');
       getNegotiateBtn.classList.remove('visible');
       clearFile();
       // Reset chat
@@ -1256,6 +1303,19 @@
         resultsPanel.classList.add('visible');
         switchTab('summary');
 
+        // Store report data for PDF download
+        reportData = {
+          filename:     data.filename || (isDemo ? 'fake_contract.pdf' : selectedFile.name),
+          summary:      data.summary || '',
+          risks:        data.risks   || '',
+          score:        data.score   || 0,
+          label:        data.label   || 'Low Risk',
+          high_count:   data.high_count   || 0,
+          medium_count: data.medium_count || 0,
+          low_count:    data.low_count    || 0,
+        };
+        downloadReportBtn.classList.add('visible');
+
         // Show 'Get Negotiation Tips' button if there are risks
         if (currentRisksText.trim()) {
           getNegotiateBtn.classList.add('visible');
@@ -1306,18 +1366,23 @@
       const badgeHigh = document.getElementById('badgeHigh');
       const badgeMedium = document.getElementById('badgeMedium');
       const badgeLow = document.getElementById('badgeLow');
+      const scoreClauses = document.getElementById('scoreClauses');
       
       const score = data.score !== undefined ? data.score : 0;
       const label = data.label || 'Low Risk';
       const high = data.high_count || 0;
       const medium = data.medium_count || 0;
       const low = data.low_count || 0;
+      const total = data.total_clauses !== undefined ? data.total_clauses : (high + medium + low);
       
       scoreValue.textContent = score;
       scoreLabel.textContent = label;
       badgeHigh.textContent = `${high} High`;
       badgeMedium.textContent = `${medium} Medium`;
       badgeLow.textContent = `${low} Low`;
+      if (scoreClauses) {
+        scoreClauses.textContent = `Based on ${total} clause${total !== 1 ? 's' : ''} reviewed`;
+      }
       
       // Reset card classes and apply severity color class
       card.className = 'risk-score-card';
@@ -1578,6 +1643,60 @@
       chatHistory.appendChild(wrap);
       chatHistory.scrollTop = chatHistory.scrollHeight;
       return wrap;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Download PDF Report
+    // ─────────────────────────────────────────────────────────────────────────
+    if (downloadReportBtn) {
+      downloadReportBtn.addEventListener('click', doDownloadReport);
+    }
+
+    async function doDownloadReport() {
+      if (isDownloading || !reportData) return;
+      isDownloading = true;
+
+      const originalLabel = downloadReportBtn.innerHTML;
+      downloadReportBtn.disabled = true;
+      downloadReportBtn.innerHTML = '<span class="dl-icon">⏳</span> Generating…';
+
+      try {
+        const res = await fetch('/download-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reportData),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: 'Unknown error.' }));
+          throw new Error(err.detail || `Server error ${res.status}`);
+        }
+
+        // Trigger browser download
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'lexai_report.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+        // Brief success flash
+        downloadReportBtn.innerHTML = '<span class="dl-icon">✅</span> Downloaded!';
+        setTimeout(() => {
+          downloadReportBtn.innerHTML = originalLabel;
+          downloadReportBtn.disabled = false;
+          isDownloading = false;
+        }, 2000);
+
+      } catch (err) {
+        showError('PDF generation failed: ' + err.message);
+        downloadReportBtn.innerHTML = originalLabel;
+        downloadReportBtn.disabled = false;
+        isDownloading = false;
+      }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
