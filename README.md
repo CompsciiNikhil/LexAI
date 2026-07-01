@@ -1,4 +1,4 @@
-# LexAI — Agentic Legal Document Intelligence
+# LexAI - Agentic Legal Document Intelligence
 
 > Understand any legal document in plain English. Built with Google ADK, MCP, and Gemini.
 
