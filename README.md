@@ -34,9 +34,9 @@ python main.py
 User (Browser)
       |
 [Orchestrator Agent]
-      |
- ┌────┼────────────┬──────────────────┐
- |    |             |                  |
+            |
+    ┌───────┼────────────┬──────────────────┐
+    |       |            |                  |
 [Explainer] [Risk] [Q&A]   [Negotiation Suggester]
       |                       (also via /negotiate)
  [MCP Server]
