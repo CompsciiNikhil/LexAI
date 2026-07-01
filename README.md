@@ -7,6 +7,7 @@ LexAI is a multi-agent AI system that:
 - Explains legal documents in plain English
 - Flags risky clauses with severity ratings (HIGH / MEDIUM / LOW)
 - Answers your questions about the document
+- Suggests concrete negotiation rewrites for HIGH / MEDIUM risk clauses
 
 ## Built for
 - Kaggle AI Agents Capstone (Agents for Business track)
@@ -34,10 +35,10 @@ User (Browser)
       |
 [Orchestrator Agent]
       |
- ┌────┼────────────┐
- |    |             |
-[Explainer] [Risk] [Q&A]
-      |
+ ┌────┼────────────┬──────────────────┐
+ |    |             |                  |
+[Explainer] [Risk] [Q&A]   [Negotiation Suggester]
+      |                       (also via /negotiate)
  [MCP Server]
  - parse_document
  - extract_clauses

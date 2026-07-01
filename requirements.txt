@@ -2,10 +2,11 @@
 # Requirements
 
 # Google Agent Development Kit (ADK)
-google-adk>=0.4.0
+google-adk==2.3.0
 
-# Gemini / Google AI
-google-generativeai>=0.8.0
+# Gemini / Google AI SDKs
+google-generativeai==0.8.6
+google-genai==2.10.0
 
 # MCP (Model Context Protocol)
 mcp>=1.0.0
